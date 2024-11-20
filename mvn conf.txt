@@ -1,0 +1,46 @@
+wget https://archive.apache.org/dist/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz
+
+tar -xvzf apache-maven-3.8.5-bin.tar.gz
+sudo mv apache-maven-3.8.5 /opt/maven
+sudo nano /etc/profile.d/maven.sh
+export M2_HOME=/opt/maven
+export PATH=$M2_HOME/bin:$PATH
+source /etc/profile.d/maven.sh
+mvn -version
+
+
+Ajoutez Maven comme outil global
+Allez dans Manage Jenkins > Global Tool Configuration.
+Sous Maven, cliquez sur Add Maven.
+Désactivez l'option Install automatically.
+Dans le champ Home directory, entrez /opt/maven.
+Donnez un nom à cette configuration, par exemple : Maven-3.8.5.
+
+Étape 3 : Configurer le Cache Maven
+1. Configurez le répertoire de cache
+Par défaut, Maven utilise le cache local ~/.m2/repository. Vous pouvez configurer un répertoire partagé pour Jenkins :
+
+Créez le répertoire de cache Maven pour l'utilisateur Jenkins :
+sudo mkdir -p /var/lib/jenkins/.m2/repository
+sudo chown -R jenkins:jenkins /var/lib/jenkins/.m2
+sudo nano /var/lib/jenkins/.m2/settings.xml
+
+Ajoutez les configurations suivantes dans settings.xml :
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+          http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <localRepository>/var/lib/jenkins/.m2/repository</localRepository>
+    <mirrors>
+        <mirror>
+            <id>central</id>
+            <name>Central Mirror</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+    </mirrors>
+</settings>
+
+sudo chown -R jenkins:jenkins /var/lib/jenkins/.m2
+
