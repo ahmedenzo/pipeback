@@ -1,6 +1,6 @@
 ---
   - name: Deploy Backend and RabbitMQ with Docker Compose
-    hosts: backend
+    hosts: 10.0.2.10
     become: yes
     tasks:
       - name: Ensure Docker and Docker Compose are installed
