@@ -1,0 +1,111 @@
+---
+  - name: Deploy Backend and RabbitMQ with Docker Compose
+    hosts: backend
+    become: yes
+    tasks:
+      - name: Ensure Docker and Docker Compose are installed
+        block:
+          - name: Check if Docker is installed
+            command: docker --version
+            register: docker_installed
+            ignore_errors: yes
+  
+          - name: Install prerequisites for Docker
+            yum:
+              name: "{{ item }}"
+              state: present
+            loop:
+              - yum-utils
+              - device-mapper-persistent-data
+              - lvm2
+            when: docker_installed.rc != 0
+  
+          - name: Add Docker repository
+            shell: |
+              yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            when: docker_installed.rc != 0
+  
+          - name: Install Docker CE
+            yum:
+              name: docker-ce
+              state: present
+            when: docker_installed.rc != 0
+  
+          - name: Ensure Docker service is started
+            service:
+              name: docker
+              state: started
+              enabled: yes
+  
+          - name: Check if Docker Compose is installed
+            command: docker-compose --version
+            register: docker_compose_installed
+            ignore_errors: yes
+  
+          - name: Install Docker Compose
+            get_url:
+              url: https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)
+              dest: /usr/local/bin/docker-compose
+              mode: '0755'
+            when: docker_compose_installed.rc != 0
+  
+          - name: Verify Docker Compose installation
+            command: docker-compose --version
+  
+      - name: Remove old backend container (if exists)
+        ansible.builtin.shell: |
+          docker rm -f backend || true
+  
+      - name: Remove old RabbitMQ container (if exists)
+        ansible.builtin.shell: |
+          docker rm -f rabbitmq || true
+  
+      - name: Remove old Docker Compose file if it exists
+        ansible.builtin.file:
+          path: /tmp/docker-compose.yml
+          state: absent
+  
+      - name: Remove old backend Docker image tar file if it exists
+        ansible.builtin.file:
+          path: /tmp/backend-app.tar
+          state: absent
+  
+      - name: Remove old RabbitMQ Docker image tar file if it exists
+        ansible.builtin.file:
+          path: /tmp/rabbitmq-app.tar
+          state: absent
+  
+      - name: Copy backend Docker image to VM
+        ansible.builtin.copy:
+          src: PinSenderBackend-main/backend-image.tar
+          dest: /tmp/backend-app.tar
+  
+      - name: Copy RabbitMQ Docker image to VM
+        ansible.builtin.copy:
+          src: PinSenderBackend-main/rabbitmq-image.tar
+          dest: /tmp/rabbitmq-app.tar
+  
+      - name: Copy Docker Compose file to VM
+        ansible.builtin.copy:
+          src: PinSenderBackend-main/docker-compose.yml
+          dest: /tmp/docker-compose.yml
+  
+      - name: Load backend Docker image
+        ansible.builtin.shell: |
+          docker load < /tmp/backend-app.tar
+  
+      - name: Load RabbitMQ Docker image
+        ansible.builtin.shell: |
+          docker load < /tmp/rabbitmq-app.tar
+  
+      - name: Update Docker Compose with SQL Server IP
+        ansible.builtin.lineinfile:
+          path: /tmp/docker-compose.yml
+          regexp: 'jdbc:sqlserver://.*:1433'
+          line: 'SPRING_DATASOURCE_URL=jdbc:sqlserver://<IP_VM_SQL>:1433;databaseName=test;encrypt=true;trustServerCertificate=true'
+          state: present
+  
+      - name: Start services with Docker Compose
+        ansible.builtin.shell: |
+          docker-compose -f /tmp/docker-compose.yml up -d
+  

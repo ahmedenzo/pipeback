@@ -1,18 +1,44 @@
 pipeline {
     agent any
 
+    environment {
+        BACKEND_IMAGE = "back-app" // Nom de l'image backend
+        RABBITMQ_IMAGE = "rabbitmq:3-management" // Nom de l'image RabbitMQ
+        INVENTORY = "PinSenderBackend-main/inventory.ini"
+        PLAYBOOK = "PinSenderBackend-main/deploy.yml"
+        TEST_HOST = "10.0.2.15" // Adresse de la VM backend cible
+    }
+
     tools {
         maven 'Maven-3.8.5' // Maven configuré dans Jenkins
     }
 
     environment {
-        MAVEN_OPTS = '-Dmaven.repo.local=/var/lib/jenkins/.m2/repository' // Utilisation du cache global Maven
+        MAVEN_OPTS = '-Dmaven.repo.local=/var/lib/jenkins/.m2/repository' // Cache Maven
     }
 
     stages {
+        stage('Test Ansible Connection') {
+            steps {
+                script {
+                    def connectionStatus = sh(
+                        script: '''
+                            echo "Testing Ansible connection..."
+                            sudo ansible -i ${INVENTORY} ${TEST_HOST} -m ping
+                        ''',
+                        returnStatus: true
+                    )
+                    if (connectionStatus != 0) {
+                        error "Ansible connection test failed! Skipping pipeline."
+                    } else {
+                        echo "Ansible connection successful."
+                    }
+                }
+            }
+        }
+
         stage('Clone Repository') {
             steps {
-                // Cloner le repository Git
                 git branch: 'master', url: 'https://github.com/ahmedenzo/pipeback.git'
             }
         }
@@ -20,31 +46,66 @@ pipeline {
         stage('Build with Maven') {
             steps {
                 dir('PinSenderBackend-main') {
-                    // Construire le projet avec Maven (sans tests)
                     sh 'mvn clean package -DskipTests'
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Backend Docker Image') {
             steps {
-                // Construire l'image Docker en ciblant le Dockerfile dans 'PinSenderBackend-main'
-                sh 'docker build -t backend-image:latest PinSenderBackend-main'
+                dir('PinSenderBackend-main') {
+                    sh "docker build -t ${BACKEND_IMAGE}:latest ."
+                }
             }
         }
 
-        stage('Pull RabbitMQ Image') {
+        stage('Pull RabbitMQ Docker Image') {
             steps {
-                // Tirer l'image Docker officielle de RabbitMQ
-                sh 'docker pull rabbitmq:3-management'
+                sh "docker pull ${RABBITMQ_IMAGE}"
+            }
+        }
+
+        stage('Export Docker Images') {
+            steps {
+                dir('PinSenderBackend-main') {
+                    sh '''
+                        echo "Exporting backend Docker image..."
+                        docker save -o backend-image.tar ${BACKEND_IMAGE}:latest
+                        echo "Exporting RabbitMQ Docker image..."
+                        docker save -o rabbitmq-image.tar ${RABBITMQ_IMAGE}
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy with Ansible') {
+            steps {
+                dir('PinSenderBackend-main') {
+                    sh '''
+                        echo "Executing Ansible playbook to deploy images..."
+                        sudo ansible-playbook -i ${INVENTORY} ${PLAYBOOK}
+                    '''
+                }
+            }
+        }
+
+        stage('Clean Local Docker Images') {
+            steps {
+                sh '''
+                    echo "Cleaning up local Docker images..."
+                    docker rmi -f ${BACKEND_IMAGE}:latest || true
+                    docker rmi -f ${RABBITMQ_IMAGE} || true
+                '''
             }
         }
     }
 
     post {
-        always {
-            // Nettoyage pour libérer de l'espace disque
-            sh 'docker system prune -f || true'
+        success {
+            echo 'Pipeline succeeded! Images exported, deployed, and cleaned up successfully. 🎉'
+        }
+        failure {
+            echo 'Pipeline failed! ❌'
         }
     }
 }
