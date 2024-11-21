@@ -4,17 +4,14 @@ pipeline {
     environment {
         BACKEND_IMAGE = "back-app" // Nom de l'image backend
         RABBITMQ_IMAGE = "rabbitmq:3-management" // Nom de l'image RabbitMQ
-        INVENTORY = "PinSenderBackend-main/inventory.ini"
-        PLAYBOOK = "PinSenderBackend-main/deploy.yml"
-        TEST_HOST = "10.0.2.15" // Adresse de la VM backend cible
+        INVENTORY = "inventory.ini" // Relative to 'PinSenderBackend-main'
+        PLAYBOOK = "deploy.yml"    // Relative to 'PinSenderBackend-main'
+        TEST_HOST = "10.0.2.10" // Adresse de la VM backend cible
+        MAVEN_OPTS = '-Dmaven.repo.local=/var/lib/jenkins/.m2/repository' // Cache Maven
     }
 
     tools {
         maven 'Maven-3.8.5' // Maven configuré dans Jenkins
-    }
-
-    environment {
-        MAVEN_OPTS = '-Dmaven.repo.local=/var/lib/jenkins/.m2/repository' // Cache Maven
     }
 
     stages {
@@ -24,7 +21,7 @@ pipeline {
                     def connectionStatus = sh(
                         script: '''
                             echo "Testing Ansible connection..."
-                            sudo ansible -i ${INVENTORY} ${TEST_HOST} -m ping
+                            sudo ansible -i PinSenderBackend-main/${INVENTORY} ${TEST_HOST} -m ping
                         ''',
                         returnStatus: true
                     )
