@@ -102,7 +102,7 @@
         ansible.builtin.lineinfile:
           path: /tmp/docker-compose.yml
           regexp: 'jdbc:sqlserver://.*:1433'
-          line: 'SPRING_DATASOURCE_URL=jdbc:sqlserver://<IP_VM_SQL>:1433;databaseName=test;encrypt=true;trustServerCertificate=true'
+          line: 'SPRING_DATASOURCE_URL=jdbc:sqlserver://10.0.2.15:1433;databaseName=test;encrypt=true;trustServerCertificate=true'
           state: present
   
       - name: Start services with Docker Compose
