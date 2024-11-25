@@ -6,7 +6,6 @@ pipeline {
         RABBITMQ_IMAGE = "rabbitmq:3-management"
         INVENTORY = "PinSenderBackend-main/inventory.ini"
         PLAYBOOK = "PinSenderBackend-main/deploy.yml"
-        TEST_HOST = "app"
         MAVEN_OPTS = '-Dmaven.repo.local=/var/lib/jenkins/.m2/repository'
     }
 
@@ -21,21 +20,21 @@ pipeline {
             }
         }
 
-        stage('Vérifier les fichiers nécessaires') {
+        stage('Verify Required Files') {
             steps {
                 script {
-                    echo "Vérification des fichiers nécessaires : ${INVENTORY} et ${PLAYBOOK}..."
+                    echo "Verifying required files: ${INVENTORY} and ${PLAYBOOK}..."
 
                     if (!fileExists("${INVENTORY}")) {
-                        error "Le fichier ${INVENTORY} est introuvable. Arrêt du pipeline."
+                        error "The file ${INVENTORY} is missing. Stopping the pipeline."
                     } else {
-                        echo "Le fichier ${INVENTORY} est présent."
+                        echo "The file ${INVENTORY} is present."
                     }
 
                     if (!fileExists("${PLAYBOOK}")) {
-                        error "Le fichier ${PLAYBOOK} est introuvable. Arrêt du pipeline."
+                        error "The file ${PLAYBOOK} is missing. Stopping the pipeline."
                     } else {
-                        echo "Le fichier ${PLAYBOOK} est présent."
+                        echo "The file ${PLAYBOOK} is present."
                     }
                 }
             }
