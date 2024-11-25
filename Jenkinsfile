@@ -13,32 +13,54 @@ pipeline {
     tools {
         maven 'Maven-3.8.5'
     }
+    stage('Clone Repository') {
+            steps {
+                git branch: 'master', url: 'https://github.com/ahmedenzo/pipeback.git'
+            }
+    }
+    stage('Vérifier les fichiers nécessaires') {
+            steps {
+                script {
+                    echo "Vérification des fichiers nécessaires : ${INVENTORY} et ${PLAYBOOK}..."
+                    
+                    // Vérifier le fichier inventory.ini
+                    if (!fileExists("${INVENTORY}")) {
+                        error "Le fichier ${INVENTORY} est introuvable. Arrêt du pipeline."
+                    } else {
+                        echo "Le fichier ${INVENTORY} est présent."
+                    }
 
-    stages {
-        stage('Test Ansible Connection') {
+                    // Vérifier le fichier deploy.yml
+                    if (!fileExists("${PLAYBOOK}")) {
+                        error "Le fichier ${PLAYBOOK} est introuvable. Arrêt du pipeline."
+                    } else {
+                        echo "Le fichier ${PLAYBOOK} est présent."
+                    }
+                }
+            }
+    }
+
+
+    stage('Test Ansible Connection') {
             steps {
                 script {
                     def connectionStatus = sh(
                         script: '''
                             echo "Testing Ansible connection..."
-                            ansible all -i ${INVENTORY} -m ping
+                            ansible all -m ping -i ${INVENTORY}
                         ''',
                         returnStatus: true
                     )
                     if (connectionStatus != 0) {
-                        error "Ansible connection test failed!"
+                        error "Ansible connection test failed! Skipping pipeline."
                     } else {
                         echo "Ansible connection successful."
                     }
                 }
             }
-        }
+    }
 
-        stage('Clone Repository') {
-            steps {
-                git branch: 'master', url: 'https://github.com/ahmedenzo/pipeback.git'
-            }
-        }
+
 
         stage('Build with Maven') {
             steps {
