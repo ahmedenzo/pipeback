@@ -13,24 +13,25 @@ pipeline {
     tools {
         maven 'Maven-3.8.5'
     }
-    stage('Clone Repository') {
+
+    stages {
+        stage('Clone Repository') {
             steps {
                 git branch: 'master', url: 'https://github.com/ahmedenzo/pipeback.git'
             }
-    }
-    stage('Vérifier les fichiers nécessaires') {
+        }
+
+        stage('Vérifier les fichiers nécessaires') {
             steps {
                 script {
                     echo "Vérification des fichiers nécessaires : ${INVENTORY} et ${PLAYBOOK}..."
-                    
-                    // Vérifier le fichier inventory.ini
+
                     if (!fileExists("${INVENTORY}")) {
                         error "Le fichier ${INVENTORY} est introuvable. Arrêt du pipeline."
                     } else {
                         echo "Le fichier ${INVENTORY} est présent."
                     }
 
-                    // Vérifier le fichier deploy.yml
                     if (!fileExists("${PLAYBOOK}")) {
                         error "Le fichier ${PLAYBOOK} est introuvable. Arrêt du pipeline."
                     } else {
@@ -38,10 +39,9 @@ pipeline {
                     }
                 }
             }
-    }
+        }
 
-
-    stage('Test Ansible Connection') {
+        stage('Test Ansible Connection') {
             steps {
                 script {
                     def connectionStatus = sh(
@@ -58,9 +58,7 @@ pipeline {
                     }
                 }
             }
-    }
-
-
+        }
 
         stage('Build with Maven') {
             steps {
@@ -103,7 +101,7 @@ pipeline {
             steps {
                 dir('PinSenderBackend-main') {
                     sh '''
-                        ansible-playbook -i ${INVENTORY} ${PLAYBOOK}
+                        ansible-playbook -i inventory.ini deploy.yml
                     '''
                 }
             }
