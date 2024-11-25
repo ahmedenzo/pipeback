@@ -3,10 +3,13 @@ version: '3.9'
 services:
   backend:
     image: back-app:latest
+    container_name: backend-service  # Name of the backend container
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:sqlserver:/10.0.2.15:1433;databaseName=test;encrypt=true;trustServerCertificate=true
+      SPRING_DATASOURCE_URL: jdbc:sqlserver://10.0.2.15:1433;databaseName=test;encrypt=true;trustServerCertificate=true
+      SPRING_DATASOURCE_USERNAME: ahmed
+      SPRING_DATASOURCE_PASSWORD: ferchichi123
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.microsoft.sqlserver.jdbc.SQLServerDriver
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -20,6 +23,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: rabbitmq-service  # Name of the RabbitMQ container
     ports:
       - "5672:5672"
       - "15672:15672"

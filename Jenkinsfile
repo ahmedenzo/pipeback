@@ -106,12 +106,25 @@ pipeline {
             }
         }
 
-        stage('Clean Local Docker Images') {
+        stage('Clean Local Docker Environment') {
             steps {
-                sh '''
-                    docker rmi -f ${BACKEND_IMAGE}:latest || true
-                    docker rmi -f ${RABBITMQ_IMAGE} || true
-                '''
+                script {
+                    echo "Removing all Docker containers and images on Jenkins VM..."
+                    sh '''
+                        # Stop and remove all running containers
+                        docker ps -q | xargs --no-run-if-empty docker stop
+                        docker ps -aq | xargs --no-run-if-empty docker rm
+
+                        # Remove all Docker images
+                        docker images -q | xargs --no-run-if-empty docker rmi -f
+
+                        # Remove dangling volumes
+                        docker volume ls -qf dangling=true | xargs --no-run-if-empty docker volume rm
+
+                        # Remove unused networks
+                        docker network prune -f
+                    '''
+                }
             }
         }
     }
