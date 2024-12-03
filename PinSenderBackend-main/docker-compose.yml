@@ -19,8 +19,8 @@ services:
     logging:
       driver: "loki"
       options:
-        loki-url: "http://10.0.2.4:3100/loki/api/v1/push"
-        loki-external-labels: job=backend-service
+        loki-url: "http://10.0.2.4:3100/loki/api/v1/push"  # Loki on VM pipie
+        loki-external-labels: job=backend-service  # Label for easier filtering in Grafana
     depends_on:
       - rabbitmq
     networks:
@@ -38,18 +38,18 @@ services:
     logging:
       driver: "loki"
       options:
-        loki-url: "http://10.0.2.4:3100/loki/api/v1/push"
+        loki-url: "http://10.0.2.4:3100/loki/api/v1/push"  # Loki on VM pipie
         loki-external-labels: job=rabbitmq-service
     networks:
       - app_network
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq  # Add this line for persistence
+      - rabbitmq_data:/var/lib/rabbitmq
 
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
     ports:
-      - "9100:9100"
+      - "9100:9100"  # Expose metrics for Node Exporter
     networks:
       - app_network
 
@@ -57,7 +57,7 @@ services:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
     ports:
-      - "8181:8080"
+      - "8181:8080"  # Expose metrics for cAdvisor
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -67,7 +67,7 @@ services:
       - app_network
 
 volumes:
-  rabbitmq_data:  # Volume definition for RabbitMQ
+  rabbitmq_data:
 
 networks:
   app_network:

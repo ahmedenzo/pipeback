@@ -49,7 +49,18 @@
         chmod +x /usr/local/bin/docker-compose
       when: docker_compose_installed.rc != 0
 
-    # Step 2: Modify Docker Daemon for Loki Logging
+    # Step 2: Install Loki Docker Plugin
+    - name: Check if Loki plugin is installed
+      shell: docker plugin ls | grep loki
+      register: loki_plugin_installed
+      ignore_errors: yes
+
+    - name: Install Loki plugin
+      shell: |
+        docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+      when: loki_plugin_installed.rc != 0
+
+    # Step 3: Modify Docker Daemon for Loki Logging
     - name: Ensure Docker daemon.json is configured for Loki
       copy:
         dest: /etc/docker/daemon.json
@@ -64,7 +75,7 @@
       notify:
         - Restart Docker
 
-    # Step 3: Conditional Clean Deployment
+    # Step 4: Conditional Clean Deployment
     - name: Perform clean deployment (Remove all Docker resources and old files)
       when: clean_deploy | default(false)
       block:
@@ -99,7 +110,7 @@
             - "/tmp/rabbitmq-app.tar"
             - "/tmp/docker-compose.yml"
 
-    # Step 4: Copy application resources
+    # Step 5: Copy application resources
     - name: Copy backend Docker image to VM
       copy:
         src: "{{ playbook_dir }}/backend-image.tar"
@@ -115,7 +126,7 @@
         src: "{{ playbook_dir }}/docker-compose.yml"
         dest: /tmp/docker-compose.yml
 
-    # Step 5: Load and deploy services with Docker Compose
+    # Step 6: Load and deploy services with Docker Compose
     - name: Load backend Docker image
       shell: docker load < /tmp/backend-app.tar
 
