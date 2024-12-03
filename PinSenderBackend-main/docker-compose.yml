@@ -20,7 +20,7 @@ services:
       driver: "loki"
       options:
         loki-url: "http://10.0.2.4:3100/loki/api/v1/push"
-        loki-external-labels: job=backend-service  # Label for backend logs
+        loki-external-labels: job=backend-service
     depends_on:
       - rabbitmq
     networks:
@@ -39,9 +39,11 @@ services:
       driver: "loki"
       options:
         loki-url: "http://10.0.2.4:3100/loki/api/v1/push"
-        loki-external-labels: job=rabbitmq-service  # Label for RabbitMQ logs
+        loki-external-labels: job=rabbitmq-service
     networks:
       - app_network
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq  # Add this line for persistence
 
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
@@ -63,6 +65,9 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
     networks:
       - app_network
+
+volumes:
+  rabbitmq_data:  # Volume definition for RabbitMQ
 
 networks:
   app_network:
