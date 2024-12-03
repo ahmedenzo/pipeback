@@ -110,23 +110,20 @@ pipeline {
             }
         }
 
-        stage('Clean Local Docker Environment') {
+        stage('Post-clean Specific Docker Image') {
             steps {
                 script {
-                    echo "Removing all Docker containers and images on Jenkins VM..."
+                    echo "Removing built Docker images for Backend and RabbitMQ to prevent overlay issues..."
                     sh '''
-                        # Stop and remove all running containers
-                        docker ps -q | xargs --no-run-if-empty docker stop
-                        docker ps -aq | xargs --no-run-if-empty docker rm
+                        # Remove the Backend image
+                        docker images back-app:latest -q | xargs --no-run-if-empty docker rmi -f
 
-                        # Remove all Docker images
-                        docker images -q | xargs --no-run-if-empty docker rmi -f
+                        # Remove the RabbitMQ image
+                        docker images rabbitmq:3-management -q | xargs --no-run-if-empty docker rmi -f
 
-                        # Remove dangling volumes
-                        docker volume ls -qf dangling=true | xargs --no-run-if-empty docker volume rm
 
-                        # Remove unused networks
-                        docker network prune -f
+                        # Clean up unused Docker resources
+                        docker system prune -f --volumes
                     '''
                 }
             }
