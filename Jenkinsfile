@@ -99,9 +99,13 @@ pipeline {
         stage('Deploy with Ansible') {
             steps {
                 dir('PinSenderBackend-main') {
-                    sh '''
-                        ansible-playbook -i inventory.ini deploy.yml
-                    '''
+                    script {
+                        // Trigger Ansible playbook with clean_deploy=true
+                        def cleanDeploy = true
+                        sh """
+                            ansible-playbook -i ${INVENTORY} ${PLAYBOOK} -e clean_deploy=${cleanDeploy}
+                        """
+                    }
                 }
             }
         }
